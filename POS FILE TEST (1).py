@@ -1,13 +1,14 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 class POSSystem:
     def __init__(self):
         self.storename = "Best Buy Retail"
         self.tax_rate = 0.10
         self.discount_rate = 0.05
-        self.discount_threshold = 5000
-
+        self.discount_cost = 5000
+        # Updated product list
         self.products_list = {
             "Rice": {"cost": 250, "stock": 80},
             "Milk": {"cost": 180, "stock": 50},
@@ -25,20 +26,23 @@ class POSSystem:
 
         self.shopping_cart = {}
 
-   
+    # screen refresh
+    def clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
 
+    # Display the products
     def display_products(self):
-        """Show all products with price and stock"""
-        print("\nAvailable products:")
+        self.clear_screen()
+        print(f"\nAvailable products at {self.storename}:")
         print("-" * 45)
         for item, details in self.products_list.items():
             print(f"{item:<20} Price: ${details['cost']:<6} | Stock: {details['stock']}")
         print("-" * 45)
 
+    # Start order
     def add_to_cart(self):
-        """Add items to cart with submenu for next actions"""
         while True:
-            
+            self.clear_screen()
             print("\n===== ADD TO CART =====")
             self.display_products()
 
@@ -72,7 +76,7 @@ class POSSystem:
             self.products_list[item]["stock"] -= qty
             print(f"\n✓ {qty} {item}(s) added to cart.")
 
-            # Submenu after adding item
+            # after adding item
             while True:
                 print("\nWhat next?")
                 print("1. Add another item")
@@ -104,8 +108,9 @@ class POSSystem:
                     print("Invalid choice.")
                     input("Press Enter to continue...")
 
+    # Cancel the current order
     def cancel_order(self):
-        """Cancel order and return all items to stock"""
+        self.clear_screen()
         if not self.shopping_cart:
             print("\nCart is already empty.")
             return
@@ -120,10 +125,10 @@ class POSSystem:
         else:
             print("Cancel aborted.")
 
+    # Remove item from cart
     def remove_from_cart(self):
-        """Remove items from cart with submenu for next actions"""
         while True:
-            
+            self.clear_screen()
             print("\n===== REMOVE FROM CART =====")
 
             if not self.shopping_cart:
@@ -172,7 +177,7 @@ class POSSystem:
                 input("\nPress Enter to return to main menu...")
                 return
 
-            # Submenu after removing item
+            # after removing item
             while True:
                 print("\nWhat next?")
                 print("1. Remove another item")
@@ -204,15 +209,16 @@ class POSSystem:
                     print("Invalid choice.")
                     input("Press Enter to continue...")
 
+    # Show current order
     def view_cart(self):
-        """Display current cart contents with tax/discount preview"""
+        self.clear_screen()
         if not self.shopping_cart:
             print("\nCart is empty.")
             return
 
         print("\n----- SHOPPING CART -----")
 
-        # Calculate all totals using existing method
+        # Calculate total costs
         subtotal, discount, tax, total = self.calculate_totals()
 
         # Show line items
@@ -224,12 +230,12 @@ class POSSystem:
         print("-" * 30)
         print(f"Subtotal: ${subtotal:.2f}")
 
-        # Only show discount line if it applies
+        # Only show discount line if discount is available
         if discount > 0:
             print(f"Discount ({self.discount_rate*100:.0f}%): -${discount:.2f}")
         else:
             # Show why no discount yet
-            remaining = self.discount_threshold - subtotal
+            remaining = self.discount_cost - subtotal
             if remaining > 0:
                 print(f"Discount: $0.00 (${remaining:.2f} away from {self.discount_rate*100:.0f}% off)")
 
@@ -237,64 +243,97 @@ class POSSystem:
         print("-" * 30)
         print(f"Estimated Total: ${total:.2f}")
 
+    # Calculate items totals cost
     def calculate_totals(self):
-        """Return subtotal, discount, tax, total"""
         subtotal = sum(self.products_list[item]["cost"] * qty for item, qty in self.shopping_cart.items())
-        discount = subtotal * self.discount_rate if subtotal > self.discount_threshold else 0
+        discount = subtotal * self.discount_rate if subtotal >= self.discount_cost else 0
         tax = (subtotal - discount) * self.tax_rate
         total = subtotal - discount + tax
         return subtotal, discount, tax, total
 
+    # generate the receipt
     def generate_receipt(self, subtotal, discount, tax, total, payment, change):
-        """Print formatted receipt with date/time"""
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        print("\n======= RECEIPT =======")
+        print(f"\n====== {self.storename} ===")
+        print("======= RECEIPT ===========")
         print(f"Date: {now}")
-        print("-" * 23)
+        print("-" * 30)
 
         for item, qty in self.shopping_cart.items():
             price = self.products_list[item]["cost"]
             print(f"{item:<20} x{qty} = ${price * qty:.2f}")
 
-        print("-" * 23)
+        print("-" * 30)
         print(f"Subtotal: ${subtotal:.2f}")
         print(f"Discount: -${discount:.2f}")
         print(f"Tax: ${tax:.2f}")
         print(f"Total: ${total:.2f}")
         print(f"Paid: ${payment:.2f}")
         print(f"Change: ${change:.2f}")
+        print("Thank you for shopping")
         print("=======================\n")
 
+    # Store receipt in a folder - WITH PERMISSION HANDLING
     def save_receipt_to_file(self, subtotal, discount, tax, total, payment, change):
-        """Save receipt as a local.txt file in receipts folder"""
-        # Create receipts folder if it doesn't exist
-        os.makedirs('receipts', exist_ok=True)
-
-        # Build filename with folder path
         filename = f"receipt_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        filepath = os.path.join('receipts', filename)
 
-        with open(filepath, 'w') as f:
-            f.write("======= RECEIPT =======\n")
-            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write("-" * 23 + "\n")
-            for item, qty in self.shopping_cart.items():
-                price = self.products_list[item]["cost"]
-                f.write(f"{item:<20} x{qty} = ${price * qty:.2f}\n")
-            f.write("-" * 23 + "\n")
-            f.write(f"Subtotal: ${subtotal:.2f}\n")
-            f.write(f"Discount: -${discount:.2f}\n")
-            f.write(f"Tax: ${tax:.2f}\n")
-            f.write(f"Total: ${total:.2f}\n")
-            f.write(f"Paid: ${payment:.2f}\n")
-            f.write(f"Change: ${change:.2f}\n")
-            f.write("=======================\n")
+        # Try multiple locations until one works
+        possible_dirs = [
+            Path("receipts"), # Local receipts folder
+            Path.home() / "POS_Receipts", # User's home folder
+            Path.cwd() # Current directory as last resort
+        ]
 
-        print(f"\n✓ Receipt saved to {filepath}")
+        filepath = None
+        for folder in possible_dirs:
+            try:
+                folder.mkdir(exist_ok=True)
+                test_path = folder / filename
+                # Test if we can write here
+                with open(test_path, 'w') as f:
+                    pass
+                filepath = test_path
+                break
+            except (PermissionError, OSError):
+                continue
 
+        if filepath is None:
+            print("\n⚠ Could not save receipt: No write permission in any location.")
+            print(" Receipt was still displayed above.")
+            return
+
+        try:
+            with open(filepath, 'w') as f:
+                f.write(f"========== {self.storename} ==========\n")
+                f.write("============== RECEIPT ==============\n")
+                f.write("\n")
+                f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("-" * 30 + "\n")
+
+                for item, qty in self.shopping_cart.items():
+                    price = self.products_list[item]["cost"]
+                    f.write(f"{item:<20}x{qty} = ${price * qty:.2f}\n")
+
+                f.write("-" * 30 + "\n")
+                f.write(f"Subtotal: ${subtotal:.2f}\n")
+                f.write(f"Discount: -${discount:.2f}\n")
+                f.write(f"Tax: ${tax:.2f}\n")
+                f.write(f"Total: ${total:.2f}\n")
+                f.write(f"Paid: ${payment:.2f}\n")
+                f.write(f"Change: ${change:.2f}\n")
+                f.write("\n")
+                f.write(" Thank you for shopping\n")
+                f.write("\n")
+                f.write("======================================\n")
+
+            print(f"\n✓ Receipt saved to {filepath}")
+        except Exception as e:
+            print(f"\n⚠ Could not save receipt: {e}")
+            print(" Receipt was still displayed above.")
+
+    # Checkout
     def checkout(self):
-        """Process payment and print receipt"""
+        self.clear_screen()
         if not self.shopping_cart:
             print("Cart is empty.")
             return
@@ -322,10 +361,7 @@ class POSSystem:
                 print("Invalid input. Enter a number.")
 
     def restock_item(self, item_name: str = None, qty: int = None):
-        """
-        Restock a product by adding quantity to inventory.
-        If item_name and qty are not provided, prompts for input.
-        """
+        self.clear_screen()
         if item_name is None or qty is None:
             self.display_products()
             item_name = input("\nEnter product name to restock: ").strip().title()
@@ -349,11 +385,11 @@ class POSSystem:
         print(f"Restocked {qty} {item}(s). New stock: {self.products_list[item]['stock']}")
         return True
 
+    # Main menu of the system
     def main_menu(self):
-        """Main program loop"""
         while True:
-            
-            print("\n===== Best Buy Retail POS SYSTEM =====")
+            self.clear_screen()
+            print(f"\n===== {self.storename} POS SYSTEM =====")
             print("1. View Products")
             print("2. Start Order")
             print("3. Remove Item")
@@ -388,5 +424,9 @@ class POSSystem:
 
 # Run system
 if __name__ == "__main__":
-    pos = POSSystem()
-    pos.main_menu()
+    try:
+        pos = POSSystem()
+        pos.main_menu()
+    except Exception as e:
+        print(f"\nUnexpected error: {e}")
+        input("Press Enter to exit...")
