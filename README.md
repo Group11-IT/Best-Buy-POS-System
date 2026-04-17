@@ -3,7 +3,7 @@ Authors: Rikellme Ellis, Dujuan Anderson, Daniel Marks
 Date Created: April 12, 2026
 Course: ITT103
 
- Github URL to code:
+ Github URL to code: https://github.com/Group11-IT/Best-Buy-POS-System/releases/tag/python
 
 # Best Buy Retail POS System
 
